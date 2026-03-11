@@ -1,44 +1,71 @@
-'use client';
+"use client";
 
-import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
-import { Droplets, Mail, Lock, Eye, EyeOff, ArrowRight, Github, Chrome, User, Building, AlertCircle } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import GlowingButton from '@/components/ui/GlowingButton';
-import { useAuth } from '@/context/AuthContext';
+import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import {
+  Droplets,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Chrome,
+  User,
+  Building,
+  AlertCircle,
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import GlowingButton from "@/components/ui/GlowingButton";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    organization: '',
-    email: '',
-    password: ''
+    name: "",
+    organization: "",
+    email: "",
+    password: "",
   });
-  const [error, setError] = useState('');
-  const { register, isLoading, isAuthenticated } = useAuth();
+  const [error, setError] = useState("");
+  const {
+    registerWithFirebaseEmail,
+    loginWithGoogle,
+    isLoading,
+    isAuthenticated,
+  } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (isAuthenticated) {
-      console.log('[SignupPage] Already authenticated, redirecting to dashboard');
-      router.push('/dashboard');
+      console.log(
+        "[SignupPage] Already authenticated, redirecting to dashboard",
+      );
+      router.push("/dashboard");
     }
   }, [isAuthenticated, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    console.log('[SignupPage] Submitting registration form for:', formData.email);
-    const result = await register(formData.name, formData.email, formData.password);
-    console.log('[SignupPage] Registration result:', result);
+    setError("");
+    console.log(
+      "[SignupPage] Submitting registration form for:",
+      formData.email,
+    );
+    const result = await registerWithFirebaseEmail(
+      formData.name,
+      formData.email,
+      formData.password,
+    );
+    console.log("[SignupPage] Registration result:", result);
     if (result.success) {
-      console.log('[SignupPage] Registration successful, redirecting to dashboard');
-      router.push('/dashboard');
+      console.log(
+        "[SignupPage] Registration successful, redirecting to dashboard",
+      );
+      router.push("/dashboard");
     } else {
-      console.error('[SignupPage] Registration failed:', result.error);
-      setError(result.error || 'Registration failed. Please try again.');
+      console.error("[SignupPage] Registration failed:", result.error);
+      setError(result.error || "Registration failed. Please try again.");
     }
   };
 
@@ -47,14 +74,14 @@ export default function SignupPage() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.08
-      }
-    }
+        staggerChildren: 0.08,
+      },
+    },
   };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
+    visible: { opacity: 1, y: 0 },
   };
 
   return (
@@ -68,15 +95,22 @@ export default function SignupPage() {
           className="w-full max-w-md"
         >
           {/* Mobile Logo */}
-          <motion.div variants={itemVariants} className="lg:hidden text-center mb-8">
+          <motion.div
+            variants={itemVariants}
+            className="lg:hidden text-center mb-8"
+          >
             <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Droplets className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">AquaSense</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              AquaSense
+            </h1>
           </motion.div>
 
           <motion.div variants={itemVariants}>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Create account</h2>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              Create account
+            </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-8">
               Join thousands of researchers and organizations
             </p>
@@ -90,10 +124,12 @@ export default function SignupPage() {
                 className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-3"
               >
                 <AlertCircle className="w-5 h-5 text-red-500" />
-                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {error}
+                </p>
               </motion.div>
             )}
-            
+
             <motion.div variants={itemVariants}>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Full Name
@@ -103,7 +139,9 @@ export default function SignupPage() {
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   placeholder="John Doe"
                   className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 dark:text-white"
                   required
@@ -120,7 +158,9 @@ export default function SignupPage() {
                 <input
                   type="text"
                   value={formData.organization}
-                  onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, organization: e.target.value })
+                  }
                   placeholder="Your organization"
                   className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 dark:text-white"
                 />
@@ -136,7 +176,9 @@ export default function SignupPage() {
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                   placeholder="you@example.com"
                   className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 dark:text-white"
                   required
@@ -151,9 +193,11 @@ export default function SignupPage() {
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
                   placeholder="••••••••"
                   className="w-full pl-12 pr-12 py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 dark:text-white"
                   required
@@ -163,19 +207,39 @@ export default function SignupPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
                 </button>
               </div>
-              <p className="mt-2 text-xs text-gray-500">Must be at least 8 characters</p>
+              <p className="mt-2 text-xs text-gray-500">
+                Must be at least 8 characters
+              </p>
             </motion.div>
 
             <motion.div variants={itemVariants} className="flex items-start">
-              <input type="checkbox" className="w-4 h-4 mt-0.5 rounded border-gray-300 text-blue-500 focus:ring-blue-500" required />
+              <input
+                type="checkbox"
+                className="w-4 h-4 mt-0.5 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+                required
+              />
               <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-                I agree to the{' '}
-                <Link href="/terms" className="text-blue-500 hover:text-blue-600">Terms of Service</Link>
-                {' '}and{' '}
-                <Link href="/privacy" className="text-blue-500 hover:text-blue-600">Privacy Policy</Link>
+                I agree to the{" "}
+                <Link
+                  href="/terms"
+                  className="text-blue-500 hover:text-blue-600"
+                >
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link
+                  href="/privacy"
+                  className="text-blue-500 hover:text-blue-600"
+                >
+                  Privacy Policy
+                </Link>
               </span>
             </motion.div>
 
@@ -184,7 +248,11 @@ export default function SignupPage() {
                 {isLoading ? (
                   <motion.div
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    transition={{
+                      duration: 1,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
                     className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
                   />
                 ) : (
@@ -203,33 +271,41 @@ export default function SignupPage() {
                 <div className="w-full border-t border-gray-200 dark:border-gray-700" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-gray-50 dark:bg-gray-900 text-gray-500">Or sign up with</span>
+                <span className="px-4 bg-gray-50 dark:bg-gray-900 text-gray-500">
+                  Or sign up with
+                </span>
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-4">
+            <div className="mt-6 flex justify-center">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className="flex items-center justify-center px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                onClick={async () => {
+                  setError("");
+                  const res = await loginWithGoogle();
+                  if (res.success) router.push("/dashboard");
+                  else setError(res.error || "Google sign-in failed");
+                }}
               >
                 <Chrome className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-                <span className="ml-2 text-gray-700 dark:text-gray-300 font-medium">Google</span>
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center justify-center px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              >
-                <Github className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-                <span className="ml-2 text-gray-700 dark:text-gray-300 font-medium">GitHub</span>
+                <span className="ml-2 text-gray-700 dark:text-gray-300 font-medium">
+                  Google
+                </span>
               </motion.button>
             </div>
           </motion.div>
 
-          <motion.p variants={itemVariants} className="mt-8 text-center text-gray-600 dark:text-gray-400">
-            Already have an account?{' '}
-            <Link href="/login" className="text-blue-500 hover:text-blue-600 font-semibold">
+          <motion.p
+            variants={itemVariants}
+            className="mt-8 text-center text-gray-600 dark:text-gray-400"
+          >
+            Already have an account?{" "}
+            <Link
+              href="/login"
+              className="text-blue-500 hover:text-blue-600 font-semibold"
+            >
               Sign in
             </Link>
           </motion.p>
@@ -263,7 +339,7 @@ export default function SignupPage() {
               transition={{
                 duration: 4 + i,
                 repeat: Infinity,
-                ease: 'easeInOut',
+                ease: "easeInOut",
               }}
             />
           ))}
@@ -290,7 +366,8 @@ export default function SignupPage() {
               Start monitoring water resources today
             </h2>
             <p className="text-xl text-white/90">
-              Get access to powerful AI tools for surface water detection and analysis.
+              Get access to powerful AI tools for surface water detection and
+              analysis.
             </p>
           </motion.div>
 
@@ -301,11 +378,11 @@ export default function SignupPage() {
             className="space-y-4"
           >
             {[
-              'Upload satellite imagery instantly',
-              'AI-powered water detection in seconds',
-              'Comprehensive analytics dashboard',
-              'Real-time alerts and notifications',
-              'Export reports in multiple formats',
+              "Upload satellite imagery instantly",
+              "AI-powered water detection in seconds",
+              "Comprehensive analytics dashboard",
+              "Real-time alerts and notifications",
+              "Export reports in multiple formats",
             ].map((feature, index) => (
               <motion.div
                 key={feature}
@@ -315,8 +392,18 @@ export default function SignupPage() {
                 className="flex items-center space-x-3"
               >
                 <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  <svg
+                    className="w-4 h-4 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                 </div>
                 <span className="text-white/90">{feature}</span>

@@ -1,39 +1,54 @@
-'use client';
+"use client";
 
-import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
-import { Droplets, Mail, Lock, Eye, EyeOff, ArrowRight, Github, Chrome, AlertCircle } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import GlowingButton from '@/components/ui/GlowingButton';
-import { useAuth } from '@/context/AuthContext';
+import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import {
+  Droplets,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Github,
+  Chrome,
+  AlertCircle,
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import GlowingButton from "@/components/ui/GlowingButton";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const { login, isLoading, isAuthenticated } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const {
+    loginWithFirebaseEmail,
+    loginWithGoogle,
+    isLoading,
+    isAuthenticated,
+  } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/dashboard');
+      router.push("/dashboard");
     }
   }, [isAuthenticated, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    console.log('[LoginPage] Submitting login form for:', email);
-    const result = await login(email, password);
-    console.log('[LoginPage] Login result:', result);
+    setError("");
+    console.log("[LoginPage] Submitting login form for:", email);
+    const result = await loginWithFirebaseEmail(email, password);
+    console.log("[LoginPage] Login result:", result);
     if (result.success) {
-      console.log('[LoginPage] Login successful, redirecting to dashboard');
-      router.push('/dashboard');
+      console.log("[LoginPage] Login successful, redirecting to dashboard");
+      router.push("/dashboard");
     } else {
-      console.error('[LoginPage] Login failed:', result.error);
-      setError(result.error || 'Login failed. Please try again.');
+      console.error("[LoginPage] Login failed:", result.error);
+      setError(result.error || "Login failed. Please try again.");
     }
   };
 
@@ -42,14 +57,14 @@ export default function LoginPage() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
-      }
-    }
+        staggerChildren: 0.1,
+      },
+    },
   };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
+    visible: { opacity: 1, y: 0 },
   };
 
   return (
@@ -81,7 +96,7 @@ export default function LoginPage() {
               transition={{
                 duration: 5 + i,
                 repeat: Infinity,
-                ease: 'easeInOut',
+                ease: "easeInOut",
               }}
             />
           ))}
@@ -112,8 +127,9 @@ export default function LoginPage() {
             transition={{ delay: 0.4 }}
             className="text-xl text-white/90 leading-relaxed"
           >
-            Advanced AI-powered surface water detection and monitoring platform. 
-            Protect water resources with cutting-edge satellite imagery analysis.
+            Advanced AI-powered surface water detection and monitoring platform.
+            Protect water resources with cutting-edge satellite imagery
+            analysis.
           </motion.p>
 
           <motion.div
@@ -123,9 +139,9 @@ export default function LoginPage() {
             className="mt-8 grid grid-cols-3 gap-4"
           >
             {[
-              { value: '500K+', label: 'Images Analyzed' },
-              { value: '99.2%', label: 'Accuracy' },
-              { value: '150+', label: 'Countries' },
+              { value: "500K+", label: "Images Analyzed" },
+              { value: "99.2%", label: "Accuracy" },
+              { value: "150+", label: "Countries" },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <p className="text-3xl font-bold text-white">{stat.value}</p>
@@ -154,15 +170,22 @@ export default function LoginPage() {
           className="w-full max-w-md"
         >
           {/* Mobile Logo */}
-          <motion.div variants={itemVariants} className="lg:hidden text-center mb-8">
+          <motion.div
+            variants={itemVariants}
+            className="lg:hidden text-center mb-8"
+          >
             <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Droplets className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">AquaSense</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              AquaSense
+            </h1>
           </motion.div>
 
           <motion.div variants={itemVariants}>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Welcome back</h2>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              Welcome back
+            </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-8">
               Sign in to continue to your dashboard
             </p>
@@ -175,7 +198,9 @@ export default function LoginPage() {
               className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-3"
             >
               <AlertCircle className="w-5 h-5 text-red-500" />
-              <span className="text-red-700 dark:text-red-400 text-sm">{error}</span>
+              <span className="text-red-700 dark:text-red-400 text-sm">
+                {error}
+              </span>
             </motion.div>
           )}
 
@@ -204,7 +229,7 @@ export default function LoginPage() {
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
@@ -216,17 +241,32 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
                 </button>
               </div>
             </motion.div>
 
-            <motion.div variants={itemVariants} className="flex items-center justify-between">
+            <motion.div
+              variants={itemVariants}
+              className="flex items-center justify-between"
+            >
               <label className="flex items-center">
-                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500" />
-                <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Remember me</span>
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+                />
+                <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                  Remember me
+                </span>
               </label>
-              <Link href="/forgot-password" className="text-sm text-blue-500 hover:text-blue-600 font-medium">
+              <Link
+                href="/forgot-password"
+                className="text-sm text-blue-500 hover:text-blue-600 font-medium"
+              >
                 Forgot password?
               </Link>
             </motion.div>
@@ -236,7 +276,11 @@ export default function LoginPage() {
                 {isLoading ? (
                   <motion.div
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    transition={{
+                      duration: 1,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
                     className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
                   />
                 ) : (
@@ -255,7 +299,9 @@ export default function LoginPage() {
                 <div className="w-full border-t border-gray-200 dark:border-gray-700" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-gray-50 dark:bg-gray-900 text-gray-500">Or continue with</span>
+                <span className="px-4 bg-gray-50 dark:bg-gray-900 text-gray-500">
+                  Or continue with
+                </span>
               </div>
             </div>
 
@@ -264,9 +310,17 @@ export default function LoginPage() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className="flex items-center justify-center px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                onClick={async () => {
+                  setError("");
+                  const res = await loginWithGoogle();
+                  if (res.success) router.push("/dashboard");
+                  else setError(res.error || "Google sign-in failed");
+                }}
               >
                 <Chrome className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-                <span className="ml-2 text-gray-700 dark:text-gray-300 font-medium">Google</span>
+                <span className="ml-2 text-gray-700 dark:text-gray-300 font-medium">
+                  Google
+                </span>
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.02 }}
@@ -274,14 +328,22 @@ export default function LoginPage() {
                 className="flex items-center justify-center px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
                 <Github className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-                <span className="ml-2 text-gray-700 dark:text-gray-300 font-medium">GitHub</span>
+                <span className="ml-2 text-gray-700 dark:text-gray-300 font-medium">
+                  GitHub
+                </span>
               </motion.button>
             </div>
           </motion.div>
 
-          <motion.p variants={itemVariants} className="mt-8 text-center text-gray-600 dark:text-gray-400">
-            Don&apos;t have an account?{' '}
-            <Link href="/signup" className="text-blue-500 hover:text-blue-600 font-semibold">
+          <motion.p
+            variants={itemVariants}
+            className="mt-8 text-center text-gray-600 dark:text-gray-400"
+          >
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/signup"
+              className="text-blue-500 hover:text-blue-600 font-semibold"
+            >
               Sign up free
             </Link>
           </motion.p>
