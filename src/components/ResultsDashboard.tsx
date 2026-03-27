@@ -20,7 +20,7 @@ export default function ResultsDashboard({ results, isProcessing }: ResultsDashb
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
         <div className="flex items-center justify-center space-x-3">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-          <span className="text-gray-600 dark:text-gray-300">Analyzing image for water bodies...</span>
+          <span className="text-gray-600 dark:text-gray-300">Analyzing image for lake surface regions...</span>
         </div>
       </div>
     );
@@ -30,7 +30,7 @@ export default function ResultsDashboard({ results, isProcessing }: ResultsDashb
     return (
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
         <p className="text-center text-gray-500 dark:text-gray-400">
-          Upload an image to detect surface water
+          Upload a lake image to inspect satellite coverage
         </p>
       </div>
     );
@@ -38,7 +38,7 @@ export default function ResultsDashboard({ results, isProcessing }: ResultsDashb
 
   const stats = [
     {
-      label: 'Water Coverage',
+      label: 'Lake Coverage',
       value: `${results.waterPercentage.toFixed(2)}%`,
       icon: (
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -48,7 +48,7 @@ export default function ResultsDashboard({ results, isProcessing }: ResultsDashb
       color: 'text-blue-500'
     },
     {
-      label: 'Water Pixels',
+      label: 'Lake Pixels',
       value: results.waterPixels.toLocaleString(),
       icon: (
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -85,7 +85,7 @@ export default function ResultsDashboard({ results, isProcessing }: ResultsDashb
         <svg className="w-5 h-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
-        Detection Results
+        Surface Detection Results
       </h3>
       
       <div className="grid grid-cols-2 gap-4">
@@ -108,7 +108,7 @@ export default function ResultsDashboard({ results, isProcessing }: ResultsDashb
       {/* Water Coverage Bar */}
       <div className="mt-6">
         <div className="flex justify-between mb-2">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Water Detection Coverage</span>
+          <span className="text-sm text-gray-600 dark:text-gray-400">Lake Detection Coverage</span>
           <span className="text-sm font-medium text-blue-500">{results.waterPercentage.toFixed(2)}%</span>
         </div>
         <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -122,7 +122,7 @@ export default function ResultsDashboard({ results, isProcessing }: ResultsDashb
       {/* Total Pixels Info */}
       <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
         <p className="text-sm text-blue-700 dark:text-blue-300">
-          <strong>Analysis Summary:</strong> Detected {results.waterPixels.toLocaleString()} water pixels 
+          <strong>Analysis Summary:</strong> Detected {results.waterPixels.toLocaleString()} lake pixels 
           out of {results.totalPixels.toLocaleString()} total pixels analyzed.
         </p>
       </div>

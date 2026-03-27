@@ -76,13 +76,13 @@ export default function ImageUpload({ onImageUpload, isProcessing }: ImageUpload
             </svg>
             <div className="mt-4">
               <p className="text-lg font-medium text-gray-700 dark:text-gray-200">
-                {isDragActive ? 'Drop the image here' : 'Drag & drop satellite/aerial image'}
+                {isDragActive ? 'Drop the lake image here' : 'Drag & drop lake satellite image'}
               </p>
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                 or click to browse
               </p>
               <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-                Supports: JPEG, PNG, TIFF, WebP
+                Supports: JPEG, PNG, TIFF, WebP for lake frothing analysis
               </p>
             </div>
           </div>

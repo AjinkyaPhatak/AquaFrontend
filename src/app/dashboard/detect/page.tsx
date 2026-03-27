@@ -1,12 +1,23 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Upload, Droplets, Zap, Download, RefreshCw,
-  Shield, CheckCircle, AlertCircle, XCircle, Beaker, Waves,
-  Microscope, ThermometerSun, Leaf, AlertTriangle, FileText,
-  MapPin, Loader2, Sparkles
+import {
+  AlertCircle,
+  CheckCircle,
+  Clock3,
+  Download,
+  Droplets,
+  FileText,
+  Loader2,
+  MapPin,
+  RefreshCw,
+  Satellite,
+  ShieldAlert,
+  Sparkles,
+  Waves,
+  Wind,
+  XCircle,
 } from 'lucide-react';
 import ImageUpload from '@/components/ImageUpload';
 import WaterDetectionCanvas from '@/components/WaterDetectionCanvas';
@@ -25,12 +36,13 @@ interface DetectionResults {
   processingTime: number;
 }
 
-interface SafetyParameter {
+interface ForecastParameter {
   name: string;
   value: number;
   unit: string;
   status: 'safe' | 'warning' | 'unsafe';
   range: string;
+  description: string;
   icon: React.ElementType;
 }
 
@@ -44,92 +56,92 @@ export default function DetectPage() {
   const [isAnalyzingWithAI, setIsAnalyzingWithAI] = useState(false);
   const [showOverlay, setShowOverlay] = useState(true);
   const [overlayOpacity, setOverlayOpacity] = useState(0.5);
-  const [safetyScore, setSafetyScore] = useState<number | null>(null);
-  const [safetyParams, setSafetyParams] = useState<SafetyParameter[]>([]);
+  const [forecastRiskScore, setForecastRiskScore] = useState<number | null>(null);
+  const [forecastParams, setForecastParams] = useState<ForecastParameter[]>([]);
   const [aiAnalysis, setAiAnalysis] = useState<WaterAnalysis | null>(null);
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [useAIAnalysis, setUseAIAnalysis] = useState(true);
 
-  // Convert API response to SafetyParameter format
-  const convertToSafetyParams = (analysis: WaterAnalysis): SafetyParameter[] => {
+  const convertToForecastParams = (analysis: WaterAnalysis): ForecastParameter[] => {
     const iconMap: Record<string, React.ElementType> = {
-      ph: Beaker,
-      turbidity: Waves,
-      algaeLevel: Leaf,
-      bacteriaCount: Microscope,
-      temperature: ThermometerSun,
-      contaminationRisk: AlertTriangle,
+      foamCoverage: Droplets,
+      algaeDensity: Waves,
+      shorelineResidue: Wind,
+      waterDiscoloration: AlertCircle,
+      stagnationIndex: Clock3,
+      surfaceVolatility: ShieldAlert,
     };
 
     const nameMap: Record<string, string> = {
-      ph: 'pH Level',
-      turbidity: 'Turbidity',
-      algaeLevel: 'Algae Level',
-      bacteriaCount: 'Bacteria',
-      temperature: 'Temperature',
-      contaminationRisk: 'Contamination',
-    };
-
-    const unitMap: Record<string, string> = {
-      ph: '',
-      turbidity: 'NTU',
-      algaeLevel: 'μg/L',
-      bacteriaCount: 'CFU/mL',
-      temperature: '°C',
-      contaminationRisk: '%',
+      foamCoverage: 'Foam Coverage',
+      algaeDensity: 'Algae Density',
+      shorelineResidue: 'Shoreline Residue',
+      waterDiscoloration: 'Water Discoloration',
+      stagnationIndex: 'Stagnation Index',
+      surfaceVolatility: 'Surface Volatility',
     };
 
     const rangeMap: Record<string, string> = {
-      ph: '6.5-8.5',
-      turbidity: '<5 NTU',
-      algaeLevel: '<10 μg/L',
-      bacteriaCount: '0 CFU/mL',
-      temperature: '15-25°C',
-      contaminationRisk: '<3%',
+      foamCoverage: 'Lower is better',
+      algaeDensity: 'Lower is better',
+      shorelineResidue: 'Lower is better',
+      waterDiscoloration: 'Lower is better',
+      stagnationIndex: 'Lower is better',
+      surfaceVolatility: 'Stable is better',
     };
 
     return Object.entries(analysis.parameters).map(([key, param]) => ({
       name: nameMap[key] || key,
       value: param.value,
-      unit: unitMap[key] || '',
+      unit: '%',
       status: param.status,
       range: rangeMap[key] || '',
-      icon: iconMap[key] || Shield,
+      description: param.description,
+      icon: iconMap[key] || ShieldAlert,
     }));
   };
 
-  // Fallback local analysis
-  const generateLocalSafetyParams = (): SafetyParameter[] => {
-    const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
-    
-    const params: SafetyParameter[] = [
-      { name: 'pH Level', value: parseFloat(randomInRange(6.0, 9.0).toFixed(2)), unit: '', status: 'safe', range: '6.5-8.5', icon: Beaker },
-      { name: 'Turbidity', value: parseFloat(randomInRange(0.5, 8.0).toFixed(2)), unit: 'NTU', status: 'safe', range: '<5 NTU', icon: Waves },
-      { name: 'Algae Level', value: parseFloat(randomInRange(0, 25).toFixed(2)), unit: 'μg/L', status: 'safe', range: '<10 μg/L', icon: Leaf },
-      { name: 'Bacteria', value: parseFloat(randomInRange(0, 5).toFixed(2)), unit: 'CFU/mL', status: 'safe', range: '0 CFU/mL', icon: Microscope },
-      { name: 'Temperature', value: parseFloat(randomInRange(15, 30).toFixed(2)), unit: '°C', status: 'safe', range: '15-25°C', icon: ThermometerSun },
-      { name: 'Contamination', value: parseFloat(randomInRange(0, 10).toFixed(2)), unit: '%', status: 'safe', range: '<3%', icon: AlertTriangle }
-    ];
+  const generateLocalForecast = (): WaterAnalysis => {
+    const riskScore = Math.floor(Math.random() * 35) + 55;
+    const estimatedTimeToFrothHours = riskScore > 80 ? 4 : riskScore > 65 ? 18 : 60;
+    const safetyStatus = riskScore >= 80 ? 'unsafe' : riskScore >= 55 ? 'warning' : 'safe';
 
-    params[0].status = params[0].value >= 6.5 && params[0].value <= 8.5 ? 'safe' : params[0].value >= 6.0 && params[0].value <= 9.0 ? 'warning' : 'unsafe';
-    params[1].status = params[1].value < 5 ? 'safe' : params[1].value < 7 ? 'warning' : 'unsafe';
-    params[2].status = params[2].value < 10 ? 'safe' : params[2].value < 20 ? 'warning' : 'unsafe';
-    params[3].status = params[3].value === 0 ? 'safe' : params[3].value < 3 ? 'warning' : 'unsafe';
-    params[4].status = params[4].value >= 15 && params[4].value <= 25 ? 'safe' : params[4].value >= 10 && params[4].value <= 30 ? 'warning' : 'unsafe';
-    params[5].status = params[5].value < 3 ? 'safe' : params[5].value < 7 ? 'warning' : 'unsafe';
-
-    return params;
-  };
-
-  const calculateSafetyScore = (params: SafetyParameter[]): number => {
-    let score = 100;
-    params.forEach(param => {
-      if (param.status === 'warning') score -= 10;
-      if (param.status === 'unsafe') score -= 25;
-    });
-    return Math.max(0, Math.min(100, score));
+    return {
+      _id: 'local-preview',
+      userId: '',
+      imagePath: '',
+      overallSafetyScore: riskScore,
+      safetyStatus,
+      parameters: {
+        foamCoverage: { value: 34, status: 'warning', description: 'Early foam streaking is visible on the surface.' },
+        algaeDensity: { value: 58, status: 'warning', description: 'Bloom density looks elevated in near-shore sections.' },
+        shorelineResidue: { value: 41, status: 'warning', description: 'Residue bands suggest material is collecting along the edge.' },
+        waterDiscoloration: { value: 52, status: 'warning', description: 'Discoloration indicates active surface buildup.' },
+        stagnationIndex: { value: 63, status: 'unsafe', description: 'Low circulation could allow froth to intensify quickly.' },
+        surfaceVolatility: { value: 47, status: 'warning', description: 'Patchy surface texture suggests unstable surface conditions.' },
+      },
+      recommendations: [
+        'Review fresh satellite imagery again within the next 6-12 hours.',
+        'Inspect shoreline accumulation zones before public-facing froth becomes widespread.',
+        'Track bloom movement and wind-driven concentration around inlets and enclosed edges.',
+      ],
+      detailedAnalysis:
+        'This fallback forecast suggests the lake is trending toward frothing conditions. Surface stagnation, bloom activity, and shoreline buildup are the main drivers in the current image.',
+      waterType: 'Satellite-observed lake',
+      potentialContaminants: ['algal bloom biomass', 'shoreline organic buildup'],
+      frothStage: estimatedTimeToFrothHours <= 6 ? 'imminent' : estimatedTimeToFrothHours <= 24 ? 'forming' : 'watch',
+      estimatedTimeToFrothHours,
+      estimatedTimeToFrothLabel:
+        estimatedTimeToFrothHours <= 6 ? 'Within 6 hours' : estimatedTimeToFrothHours <= 24 ? 'Within 24 hours' : '2-3 days',
+      frothConfidence: 62,
+      estimatedFrothCoveragePercent: 38,
+      keyDrivers: ['surface stagnation', 'bloom concentration', 'shoreline accumulation'],
+      location,
+      notes,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
   };
 
   const processImage = useCallback(async (imageDataUrl: string) => {
@@ -143,7 +155,6 @@ export default function DetectPage() {
       const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
       canvas.width = img.width * scale;
       canvas.height = img.height * scale;
-
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
@@ -155,64 +166,66 @@ export default function DetectPage() {
         totalPixels: detectionResult.totalPixels,
         waterPixels: detectionResult.waterPixels,
         confidence: detectionResult.confidence,
-        processingTime: detectionResult.processingTime
+        processingTime: detectionResult.processingTime,
       });
-      
+
       setIsProcessing(false);
     };
     img.src = imageDataUrl;
   }, []);
 
-  // Analyze with Gemini AI via backend
   const analyzeWithAI = async () => {
     if (!uploadedFile) return;
-    
+
     setIsAnalyzingWithAI(true);
     setError(null);
-    
+
     try {
       const { data, error: apiError } = await apiService.analyzeWater(uploadedFile, location, notes);
-      
-      if (apiError) {
-        setError(apiError);
-        // Fallback to local analysis
-        const params = generateLocalSafetyParams();
-        setSafetyParams(params);
-        setSafetyScore(calculateSafetyScore(params));
-      } else if (data) {
+
+      if (apiError || !data) {
+        setError(apiError || 'Gemini forecast unavailable. Showing local fallback forecast.');
+        const localForecast = generateLocalForecast();
+        setAiAnalysis(localForecast);
+        setForecastParams(convertToForecastParams(localForecast));
+        setForecastRiskScore(localForecast.overallSafetyScore);
+      } else {
         setAiAnalysis(data);
-        const params = convertToSafetyParams(data);
-        setSafetyParams(params);
-        setSafetyScore(data.overallSafetyScore);
+        setForecastParams(convertToForecastParams(data));
+        setForecastRiskScore(data.overallSafetyScore);
       }
-    } catch (err) {
-      setError('Failed to connect to AI service. Using local analysis.');
-      const params = generateLocalSafetyParams();
-      setSafetyParams(params);
-      setSafetyScore(calculateSafetyScore(params));
+    } catch {
+      setError('Failed to connect to Gemini. Showing local fallback forecast.');
+      const localForecast = generateLocalForecast();
+      setAiAnalysis(localForecast);
+      setForecastParams(convertToForecastParams(localForecast));
+      setForecastRiskScore(localForecast.overallSafetyScore);
     } finally {
       setIsAnalyzingWithAI(false);
     }
   };
 
-  const handleImageUpload = useCallback(async (file: File) => {
-    setIsProcessing(true);
-    setResults(null);
-    setWaterMask(null);
-    setSafetyScore(null);
-    setSafetyParams([]);
-    setAiAnalysis(null);
-    setError(null);
-    setUploadedFile(file);
+  const handleImageUpload = useCallback(
+    async (file: File) => {
+      setIsProcessing(true);
+      setResults(null);
+      setWaterMask(null);
+      setForecastRiskScore(null);
+      setForecastParams([]);
+      setAiAnalysis(null);
+      setError(null);
+      setUploadedFile(file);
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const dataUrl = e.target?.result as string;
-      setOriginalImage(dataUrl);
-      await processImage(dataUrl);
-    };
-    reader.readAsDataURL(file);
-  }, [processImage]);
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const dataUrl = e.target?.result as string;
+        setOriginalImage(dataUrl);
+        await processImage(dataUrl);
+      };
+      reader.readAsDataURL(file);
+    },
+    [processImage],
+  );
 
   const handleReset = useCallback(() => {
     setOriginalImage(null);
@@ -221,62 +234,67 @@ export default function DetectPage() {
     setResults(null);
     setShowOverlay(true);
     setOverlayOpacity(0.5);
-    setSafetyScore(null);
-    setSafetyParams([]);
+    setForecastRiskScore(null);
+    setForecastParams([]);
     setAiAnalysis(null);
     setLocation('');
     setNotes('');
     setError(null);
   }, []);
 
-  const getOverallStatus = () => {
-    if (!safetyScore) return null;
-    if (safetyScore >= 80) return { status: 'safe', label: 'Safe for Use', color: 'green', icon: CheckCircle };
-    if (safetyScore >= 50) return { status: 'warning', label: 'Use with Caution', color: 'yellow', icon: AlertCircle };
-    return { status: 'unsafe', label: 'Not Safe', color: 'red', icon: XCircle };
+  const getRiskConfig = (status?: string) => {
+    switch (status) {
+      case 'safe':
+        return { label: 'Stable', icon: CheckCircle, color: '#22c55e', panel: 'bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-800' };
+      case 'warning':
+        return { label: 'Watch Closely', icon: AlertCircle, color: '#eab308', panel: 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-800' };
+      case 'unsafe':
+        return { label: 'Frothing Imminent', icon: XCircle, color: '#ef4444', panel: 'bg-red-100 dark:bg-red-900/30 border-red-200 dark:border-red-800' };
+      default:
+        return null;
+    }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'safe': return 'text-green-500';
-      case 'warning': return 'text-yellow-500';
-      case 'unsafe': return 'text-red-500';
-      default: return 'text-gray-500';
+      case 'safe':
+        return 'text-green-500';
+      case 'warning':
+        return 'text-yellow-500';
+      case 'unsafe':
+        return 'text-red-500';
+      default:
+        return 'text-gray-500';
     }
   };
 
   const getStatusBg = (status: string) => {
     switch (status) {
-      case 'safe': return 'bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-800';
-      case 'warning': return 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-800';
-      case 'unsafe': return 'bg-red-100 dark:bg-red-900/30 border-red-200 dark:border-red-800';
-      default: return 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600';
+      case 'safe':
+        return 'bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-800';
+      case 'warning':
+        return 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-800';
+      case 'unsafe':
+        return 'bg-red-100 dark:bg-red-900/30 border-red-200 dark:border-red-800';
+      default:
+        return 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600';
     }
   };
 
-  const overallStatus = getOverallStatus();
+  const riskConfig = getRiskConfig(aiAnalysis?.safetyStatus);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="space-y-6"
-    >
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
-      >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Water Safety Analysis</h1>
-          <p className="text-gray-500 dark:text-gray-400">Upload an image to analyze water quality and safety</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Lake Frothing Forecast</h1>
+          <p className="text-gray-500 dark:text-gray-400">Upload a satellite image to estimate time remaining before frothing begins.</p>
         </div>
         {results && (
           <div className="flex space-x-3">
             <GlowingButton variant="outline" onClick={handleReset}>
               <RefreshCw className="w-4 h-4 mr-2" />
-              New Analysis
+              New Forecast
             </GlowingButton>
             <GlowingButton>
               <Download className="w-4 h-4 mr-2" />
@@ -286,95 +304,90 @@ export default function DetectPage() {
         )}
       </motion.div>
 
-      {/* Overall Safety Score Banner */}
-      {overallStatus && safetyScore !== null && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className={`p-6 rounded-2xl border-2 ${getStatusBg(overallStatus.status)}`}
-        >
-          <div className="flex items-center justify-between">
+      {riskConfig && aiAnalysis && forecastRiskScore !== null && (
+        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className={`p-6 rounded-2xl border-2 ${riskConfig.panel}`}>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="flex items-center space-x-4">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', delay: 0.2 }}
-                className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
-                  overallStatus.status === 'safe' ? 'bg-green-500' :
-                  overallStatus.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
-                }`}
-              >
-                <overallStatus.icon className="w-8 h-8 text-white" />
-              </motion.div>
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: riskConfig.color }}>
+                <riskConfig.icon className="w-8 h-8 text-white" />
+              </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{overallStatus.label}</h2>
-                <p className="text-gray-600 dark:text-gray-400">Based on AI analysis of {safetyParams.length} parameters</p>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{riskConfig.label}</h2>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {aiAnalysis.estimatedTimeToFrothLabel} • stage: {aiAnalysis.frothStage}
+                </p>
               </div>
             </div>
-            <div className="text-right">
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-5xl font-bold"
-                style={{ color: overallStatus.status === 'safe' ? '#22c55e' : overallStatus.status === 'warning' ? '#eab308' : '#ef4444' }}
-              >
-                <AnimatedCounter value={safetyScore} decimals={2} />
-              </motion.p>
-              <p className="text-gray-500 dark:text-gray-400">Safety Score</p>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-right">
+                <p className="text-4xl font-bold" style={{ color: riskConfig.color }}>
+                  <AnimatedCounter value={forecastRiskScore} />
+                </p>
+                <p className="text-gray-500 dark:text-gray-400">Risk Score</p>
+              </div>
+              <div className="text-right">
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{aiAnalysis.estimatedTimeToFrothHours}h</p>
+                <p className="text-gray-500 dark:text-gray-400">Time Remaining</p>
+              </div>
+              <div className="text-right">
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{aiAnalysis.frothConfidence}%</p>
+                <p className="text-gray-500 dark:text-gray-400">Confidence</p>
+              </div>
+              <div className="text-right">
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{aiAnalysis.estimatedFrothCoveragePercent}%</p>
+                <p className="text-gray-500 dark:text-gray-400">Expected Coverage</p>
+              </div>
             </div>
           </div>
         </motion.div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Upload Section */}
           <AnimatedCard className="p-6" delay={0.1}>
             <div className="flex items-center space-x-3 mb-4">
               <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <Upload className="w-5 h-5 text-blue-500" />
+                <Satellite className="w-5 h-5 text-blue-500" />
               </div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Upload Water Sample Image</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Upload Lake Satellite Image</h2>
             </div>
             <ImageUpload onImageUpload={handleImageUpload} isProcessing={isProcessing} />
           </AnimatedCard>
 
-          {/* AI Analysis Section - appears after image is uploaded */}
-          {originalImage && results && !safetyScore && (
+          {originalImage && results && !forecastRiskScore && (
             <AnimatedCard className="p-6" delay={0.15}>
               <div className="flex items-center space-x-3 mb-4">
                 <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">AI Water Quality Analysis</h2>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Gemini Frothing Forecast</h2>
               </div>
-              
-              {/* Optional Location and Notes */}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     <MapPin className="w-4 h-4 inline mr-1" />
-                    Location (Optional)
+                    Lake Location
                   </label>
                   <input
                     type="text"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    placeholder="e.g., Lake Michigan, Chicago"
+                    placeholder="e.g., Bellandur Lake, Bengaluru"
                     className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     <FileText className="w-4 h-4 inline mr-1" />
-                    Notes (Optional)
+                    Notes
                   </label>
                   <input
                     type="text"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Any observations..."
+                    placeholder="Recent bloom, odor, runoff, wind, etc."
                     className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -382,40 +395,35 @@ export default function DetectPage() {
 
               {error && (
                 <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg text-yellow-800 dark:text-yellow-200 text-sm">
-                  <AlertTriangle className="w-4 h-4 inline mr-2" />
+                  <AlertCircle className="w-4 h-4 inline mr-2" />
                   {error}
                 </div>
               )}
 
               <div className="flex flex-col sm:flex-row gap-3">
-                <GlowingButton 
-                  onClick={analyzeWithAI} 
-                  disabled={isAnalyzingWithAI}
-                  className="flex-1"
-                >
+                <GlowingButton onClick={analyzeWithAI} disabled={isAnalyzingWithAI} className="flex-1">
                   {isAnalyzingWithAI ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Analyzing with Gemini AI...
+                      Forecasting with Gemini...
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4 mr-2" />
-                      Analyze with Gemini AI
+                      Predict Time To Froth
                     </>
                   )}
                 </GlowingButton>
-                
+
                 {!isAuthenticated && (
                   <p className="text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">
-                    <a href="/login" className="text-blue-500 hover:underline">Login</a> for full AI analysis history
+                    <a href="/login" className="text-blue-500 hover:underline">Login</a> to store your frothing forecast history
                   </p>
                 )}
               </div>
             </AnimatedCard>
           )}
 
-          {/* Detection Result */}
           {originalImage && (
             <AnimatedCard className="p-6" delay={0.2}>
               <div className="flex items-center justify-between mb-4">
@@ -423,15 +431,8 @@ export default function DetectPage() {
                   <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
                     <Droplets className="w-5 h-5 text-cyan-500" />
                   </div>
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Water Detection</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Lake Surface Detection</h2>
                 </div>
-                {isProcessing && (
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                    className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full"
-                  />
-                )}
               </div>
               <WaterDetectionCanvas
                 originalImage={originalImage}
@@ -442,23 +443,22 @@ export default function DetectPage() {
             </AnimatedCard>
           )}
 
-          {/* Safety Parameters Grid */}
-          {safetyParams.length > 0 && (
+          {forecastParams.length > 0 && (
             <AnimatedCard className="p-6" delay={0.3}>
               <div className="flex items-center space-x-3 mb-6">
                 <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg">
-                  <Shield className="w-5 h-5 text-white" />
+                  <ShieldAlert className="w-5 h-5 text-white" />
                 </div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">AI Safety Analysis Parameters</h2>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Frothing Indicators</h2>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {safetyParams.map((param, index) => (
+                {forecastParams.map((param, index) => (
                   <motion.div
                     key={param.name}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 * index }}
+                    transition={{ delay: 0.08 * index }}
                     className={`p-4 rounded-xl border-2 ${getStatusBg(param.status)}`}
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -468,70 +468,58 @@ export default function DetectPage() {
                       {param.status === 'unsafe' && <XCircle className="w-4 h-4 text-red-500" />}
                     </div>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {param.value.toFixed(2)}{param.unit && <span className="text-sm ml-1">{param.unit}</span>}
+                      {param.value.toFixed(0)}{param.unit}
                     </p>
                     <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{param.name}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Safe: {param.range}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{param.description}</p>
                   </motion.div>
                 ))}
               </div>
             </AnimatedCard>
           )}
 
-          {/* AI Detailed Analysis & Recommendations */}
           {aiAnalysis && (
             <AnimatedCard className="p-6" delay={0.4}>
               <div className="flex items-center space-x-3 mb-6">
                 <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Gemini AI Insights</h2>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Lake Frothing Insights</h2>
               </div>
 
-              {/* Water Type & Contaminants */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                  <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-1">Water Type</p>
+                  <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-1">Lake Type</p>
                   <p className="text-lg font-bold text-gray-900 dark:text-white">{aiAnalysis.waterType}</p>
                 </div>
-                {aiAnalysis.potentialContaminants.length > 0 && (
-                  <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-xl">
-                    <p className="text-sm text-orange-600 dark:text-orange-400 font-medium mb-1">Potential Contaminants</p>
-                    <div className="flex flex-wrap gap-1">
-                      {aiAnalysis.potentialContaminants.map((contaminant, i) => (
-                        <span key={i} className="text-xs px-2 py-1 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 rounded-full">
-                          {contaminant}
-                        </span>
-                      ))}
-                    </div>
+                <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-xl">
+                  <p className="text-sm text-orange-600 dark:text-orange-400 font-medium mb-1">Key Drivers</p>
+                  <div className="flex flex-wrap gap-1">
+                    {aiAnalysis.keyDrivers.map((driver, i) => (
+                      <span key={i} className="text-xs px-2 py-1 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 rounded-full">
+                        {driver}
+                      </span>
+                    ))}
                   </div>
-                )}
+                </div>
               </div>
 
-              {/* Detailed Analysis */}
               <div className="mb-6">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Detailed Analysis</p>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Forecast Narrative</p>
                 <p className="text-gray-600 dark:text-gray-400 leading-relaxed bg-gray-50 dark:bg-gray-800 p-4 rounded-xl">
                   {aiAnalysis.detailedAnalysis}
                 </p>
               </div>
 
-              {/* Recommendations */}
               {aiAnalysis.recommendations.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recommendations</p>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recommended Next Steps</p>
                   <ul className="space-y-2">
                     {aiAnalysis.recommendations.map((rec, i) => (
-                      <motion.li 
-                        key={i}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.1 * i }}
-                        className="flex items-start space-x-2 text-gray-600 dark:text-gray-400"
-                      >
+                      <li key={i} className="flex items-start space-x-2 text-gray-600 dark:text-gray-400">
                         <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                         <span>{rec}</span>
-                      </motion.li>
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -540,15 +528,13 @@ export default function DetectPage() {
           )}
         </div>
 
-        {/* Sidebar */}
         <div className="space-y-6">
-          {/* Safety Score Panel */}
           <AnimatedCard className="p-6" delay={0.3}>
             <div className="flex items-center space-x-3 mb-4">
               <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                <Shield className="w-5 h-5 text-purple-500" />
+                <Clock3 className="w-5 h-5 text-purple-500" />
               </div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Safety Summary</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Forecast Summary</h2>
             </div>
 
             {isProcessing ? (
@@ -556,104 +542,76 @@ export default function DetectPage() {
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  className="w-12 h-12 border-3 border-blue-500 border-t-transparent rounded-full mb-4"
+                  className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full mb-4"
                 />
-                <p className="text-gray-500 dark:text-gray-400">Analyzing water safety...</p>
+                <p className="text-gray-500 dark:text-gray-400">Preparing lake surface data...</p>
               </div>
-            ) : safetyScore !== null ? (
+            ) : aiAnalysis && forecastRiskScore !== null ? (
               <div className="space-y-4">
-                {/* Safety Score Circle */}
-                <div className="flex justify-center">
-                  <div className="relative w-32 h-32">
-                    <svg className="w-full h-full transform -rotate-90">
-                      <circle
-                        cx="64" cy="64" r="56"
-                        stroke="currentColor"
-                        strokeWidth="12"
-                        fill="none"
-                        className="text-gray-200 dark:text-gray-700"
-                      />
-                      <motion.circle
-                        cx="64" cy="64" r="56"
-                        stroke={safetyScore >= 80 ? '#22c55e' : safetyScore >= 50 ? '#eab308' : '#ef4444'}
-                        strokeWidth="12"
-                        fill="none"
-                        strokeLinecap="round"
-                        initial={{ strokeDasharray: '0 352' }}
-                        animate={{ strokeDasharray: `${(safetyScore / 100) * 352} 352` }}
-                        transition={{ duration: 1.5, ease: 'easeOut' }}
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-3xl font-bold text-gray-900 dark:text-white">{safetyScore.toFixed(2)}</span>
-                      <span className="text-xs text-gray-500">/ 100</span>
-                    </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                    <p className="text-sm text-gray-500">Time to froth</p>
+                    <p className="text-2xl font-bold text-blue-500">{aiAnalysis.estimatedTimeToFrothLabel}</p>
+                  </div>
+                  <div className="p-4 bg-cyan-50 dark:bg-cyan-900/20 rounded-xl">
+                    <p className="text-sm text-gray-500">Froth stage</p>
+                    <p className="text-2xl font-bold text-cyan-500 capitalize">{aiAnalysis.frothStage}</p>
+                  </div>
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                    <p className="text-sm text-gray-500">Confidence</p>
+                    <p className="text-2xl font-bold text-green-500">{aiAnalysis.frothConfidence}%</p>
+                  </div>
+                  <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-xl">
+                    <p className="text-sm text-gray-500">Expected froth</p>
+                    <p className="text-2xl font-bold text-orange-500">{aiAnalysis.estimatedFrothCoveragePercent}%</p>
                   </div>
                 </div>
 
-                {/* Parameter Summary */}
-                <div className="space-y-2">
-                  {safetyParams.map((param) => (
-                    <div key={param.name} className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">{param.name}</span>
-                      <span className={`font-medium ${getStatusColor(param.status)}`}>
-                        {param.status.charAt(0).toUpperCase() + param.status.slice(1)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Water Detection Stats */}
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <p className="text-sm text-gray-500 mb-2">Water Detection</p>
+                  <p className="text-sm text-gray-500 mb-2">Satellite Detection</p>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                       <p className="text-lg font-bold text-blue-500">{results?.waterPercentage.toFixed(2)}%</p>
-                      <p className="text-xs text-gray-500">Coverage</p>
+                      <p className="text-xs text-gray-500">Lake coverage</p>
                     </div>
                     <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                       <p className="text-lg font-bold text-green-500">{((results?.confidence ?? 0) * 100).toFixed(2)}%</p>
-                      <p className="text-xs text-gray-500">Confidence</p>
+                      <p className="text-xs text-gray-500">Mask confidence</p>
                     </div>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <Shield className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>Upload an image to analyze safety</p>
+                <Satellite className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p>Upload a lake image to forecast frothing</p>
               </div>
             )}
           </AnimatedCard>
 
-          {/* Visualization Controls */}
           <AnimatedCard className="p-6" delay={0.4}>
             <div className="flex items-center space-x-3 mb-4">
               <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                <Zap className="w-5 h-5 text-orange-500" />
+                <Waves className="w-5 h-5 text-orange-500" />
               </div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Visualization</h2>
             </div>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Show Water Overlay</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Show lake mask overlay</span>
                 <button
                   onClick={() => setShowOverlay(!showOverlay)}
                   disabled={!results}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    results ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
-                  } ${showOverlay ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${results ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'} ${showOverlay ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}
                 >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    showOverlay ? 'translate-x-6' : 'translate-x-1'
-                  }`} />
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showOverlay ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
               </div>
 
               <div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Overlay Opacity</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Overlay opacity</span>
                   <span className="text-sm text-blue-500 font-medium">{Math.round(overlayOpacity * 100)}%</span>
                 </div>
                 <input
@@ -670,51 +628,22 @@ export default function DetectPage() {
             </div>
           </AnimatedCard>
 
-          {/* AI Recommendations */}
-          {safetyScore !== null && (
+          {aiAnalysis && (
             <AnimatedCard className="p-6" delay={0.5}>
               <div className="flex items-center space-x-3 mb-4">
                 <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
                   <FileText className="w-5 h-5 text-white" />
                 </div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">AI Recommendations</h2>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Monitoring Checklist</h2>
               </div>
 
               <div className="space-y-3">
-                {safetyScore >= 80 ? (
-                  <>
-                    <div className="flex items-start space-x-2">
-                      <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Water appears safe for general use</p>
-                    </div>
-                    <div className="flex items-start space-x-2">
-                      <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-gray-600 dark:text-gray-400">All parameters within safe ranges</p>
-                    </div>
-                  </>
-                ) : safetyScore >= 50 ? (
-                  <>
-                    <div className="flex items-start space-x-2">
-                      <AlertCircle className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Consider water treatment before drinking</p>
-                    </div>
-                    <div className="flex items-start space-x-2">
-                      <AlertCircle className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Monitor elevated parameter levels</p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-start space-x-2">
-                      <XCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Do not consume this water</p>
-                    </div>
-                    <div className="flex items-start space-x-2">
-                      <XCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Professional testing recommended</p>
-                    </div>
-                  </>
-                )}
+                {aiAnalysis.recommendations.map((rec, index) => (
+                  <div key={index} className="flex items-start space-x-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{rec}</p>
+                  </div>
+                ))}
               </div>
             </AnimatedCard>
           )}

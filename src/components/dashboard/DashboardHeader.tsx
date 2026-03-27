@@ -28,7 +28,7 @@ export default function DashboardHeader() {
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
         <input
           type="text"
-          placeholder="Search water bodies, reports, locations..."
+          placeholder="Search lakes, frothing reports, locations..."
           className="w-full pl-12 pr-4 py-2.5 bg-gray-100 dark:bg-gray-800 rounded-xl border-0 focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-400"
         />
       </div>

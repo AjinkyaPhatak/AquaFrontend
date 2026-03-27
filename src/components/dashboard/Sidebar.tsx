@@ -20,7 +20,7 @@ import {
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: Droplets, label: 'Water Detection', href: '/dashboard/detect' },
+  { icon: Droplets, label: 'Frothing Forecast', href: '/dashboard/detect' },
   { icon: Map, label: 'Water Map', href: '/dashboard/map' },
   { icon: BarChart3, label: 'Analytics', href: '/dashboard/analytics' },
   { icon: Globe, label: 'Global Data', href: '/dashboard/global' },
@@ -73,7 +73,7 @@ export default function Sidebar() {
           </motion.div>
           <div>
             <h1 className="text-lg font-bold text-gray-900 dark:text-white">AquaSense</h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Water Detection AI</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Lake Frothing Forecast AI</p>
           </div>
         </Link>
       </div>

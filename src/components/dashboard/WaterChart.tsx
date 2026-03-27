@@ -35,9 +35,9 @@ interface WaterChartProps {
 export default function WaterChart({ type, title, delay = 0, data, safeCount = 0, warningCount = 0, unsafeCount = 0 }: WaterChartProps) {
   // Default data for pie chart based on analysis results
   const pieData = [
-    { name: 'Safe', value: safeCount, color: '#10b981' },
-    { name: 'Warning', value: warningCount, color: '#f59e0b' },
-    { name: 'Unsafe', value: unsafeCount, color: '#ef4444' },
+    { name: 'Stable', value: safeCount, color: '#10b981' },
+    { name: 'Watch', value: warningCount, color: '#f59e0b' },
+    { name: 'Imminent', value: unsafeCount, color: '#ef4444' },
   ].filter(item => item.value > 0);
 
   // Default empty data if no analyses
