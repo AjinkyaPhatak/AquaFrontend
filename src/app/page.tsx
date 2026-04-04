@@ -62,7 +62,7 @@ export default function Home() {
     {
       icon: MapPinned,
       title: 'Lake Context',
-      description: 'Add the lake location and field notes so Gemini can make a more grounded near-term forecast.',
+      description: 'Add the lake location and field notes so the local model can make a more grounded near-term forecast.',
     },
     {
       icon: Waves,
@@ -78,7 +78,7 @@ export default function Home() {
 
   const workflow = [
     { step: '01', title: 'Upload satellite image', description: 'Submit a lake image from satellite, aerial, or overhead monitoring.' },
-    { step: '02', title: 'Forecast frothing risk', description: 'Gemini evaluates the image for lake frothing indicators and timing.' },
+    { step: '02', title: 'Forecast frothing risk', description: 'The local model evaluates the image for lake frothing indicators and timing.' },
     { step: '03', title: 'Act before frothing', description: 'Review time remaining, likely coverage, key drivers, and recommendations.' },
   ];
 
@@ -170,7 +170,7 @@ export default function Home() {
               className="mb-8 inline-flex items-center px-6 py-3 rounded-full bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-sm font-semibold backdrop-blur-sm"
             >
               <Sparkles className="w-4 h-4 mr-2" />
-              Lake Frothing Forecasting with Gemini
+              Lake Frothing Forecasting with a Local Model
             </motion.div>
 
             <motion.h1

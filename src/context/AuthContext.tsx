@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   ReactNode,
   useCallback,
@@ -17,6 +18,7 @@ import {
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged,
+  updateProfile,
   User as FirebaseUser,
 } from "firebase/auth";
 
@@ -51,36 +53,42 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const lastSyncedIdTokenRef = useRef<string | null>(null);
   const router = useRouter();
 
-  // check backend token or firebase state and sync both
-  const checkAuth = useCallback(async () => {
-    setIsLoading(true);
-    // if firebase already has a logged-in user, use its ID token to authenticate backend
-    const fbUser = auth.currentUser;
-    if (fbUser) {
-      const idToken = await fbUser.getIdToken();
-      const { data, error } = await apiService.loginWithFirebase(idToken);
-      if (data) {
-        setUser(data.user);
-        localStorage.setItem("token", data.access_token);
-      } else {
-        console.warn(
-          "[AuthContext] Firebase token could not be exchanged",
-          error,
-        );
-      }
-      setIsLoading(false);
-      return;
-    }
+  const clearSession = useCallback(() => {
+    lastSyncedIdTokenRef.current = null;
+    setUser(null);
+    localStorage.removeItem("token");
+  }, []);
 
-    // otherwise fall back to normal token stored from previous session
+  const applyAuthResult = useCallback(
+    (data: { user: User; access_token: string } | undefined) => {
+      if (!data) {
+        clearSession();
+        return;
+      }
+
+      localStorage.setItem("token", data.access_token);
+      setUser(data.user);
+    },
+    [clearSession],
+  );
+
+  const restoreBackendSession = useCallback(async () => {
     const token = localStorage.getItem("token");
     if (!token) {
-      setIsLoading(false);
       return;
     }
 
@@ -88,36 +96,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data && !error) {
       setUser(data);
     } else {
-      localStorage.removeItem("token");
+      clearSession();
     }
-    setIsLoading(false);
-  }, []);
+  }, [clearSession]);
+
+  const syncFirebaseSession = useCallback(
+    async (fbUser: FirebaseUser, force = false) => {
+      const idToken = await fbUser.getIdToken(force);
+
+      if (!force && lastSyncedIdTokenRef.current === idToken) {
+        return true;
+      }
+
+      const { data, error } = await apiService.loginWithFirebase(idToken);
+      if (data) {
+        lastSyncedIdTokenRef.current = idToken;
+        applyAuthResult(data);
+        return true;
+      }
+
+      console.warn("[AuthContext] Firebase token could not be exchanged", error);
+      clearSession();
+      return false;
+    },
+    [applyAuthResult, clearSession],
+  );
 
   // keep listen for firebase changes so that the UI can react if the user
   // signs in or out using another window/tab or provider.
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-      if (fbUser) {
-        // when firebase signs in, exchange token with our backend
-        const idToken = await fbUser.getIdToken();
-        const { data } = await apiService.loginWithFirebase(idToken);
-        if (data) {
-          setUser(data.user);
-          localStorage.setItem("token", data.access_token);
+      try {
+        if (fbUser) {
+          await syncFirebaseSession(fbUser);
+        } else {
+          await restoreBackendSession();
         }
-      } else {
-        // firebase logged out
-        setUser(null);
-        localStorage.removeItem("token");
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
 
-    // initial check
-    checkAuth();
-
     return () => unsubscribe();
-  }, [checkAuth]);
+  }, [restoreBackendSession, syncFirebaseSession]);
 
   // traditional email/password login via backend
   const login = async (email: string, password: string) => {
@@ -146,22 +167,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginWithFirebaseEmail = async (email: string, password: string) => {
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password);
-      const idToken = await cred.user.getIdToken();
-      const { data, error } = await apiService.loginWithFirebase(idToken);
-      if (error) {
-        return { success: false, error };
-      }
-      if (data) {
-        localStorage.setItem("token", data.access_token);
-        setUser(data.user);
+      const success = await syncFirebaseSession(cred.user, true);
+      if (success) {
         return { success: true };
       }
       return { success: false, error: "Login failed" };
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[AuthContext] Firebase login error", err);
       return {
         success: false,
-        error: err.message || "Firebase authentication failed",
+        error: getErrorMessage(err, "Firebase authentication failed"),
       };
     }
   };
@@ -169,22 +184,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // social/provider login (google for now)
   const loginWithGoogle = async () => {
     try {
-      const idToken = await signInWithGoogle();
-      const { data, error } = await apiService.loginWithFirebase(idToken);
-      if (error) {
-        return { success: false, error };
-      }
-      if (data) {
-        localStorage.setItem("token", data.access_token);
-        setUser(data.user);
+      const firebaseUser = await signInWithGoogle();
+      const success = await syncFirebaseSession(firebaseUser, true);
+      if (success) {
         return { success: true };
       }
       return { success: false, error: "Login failed" };
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[AuthContext] Google sign-in failed", err);
       return {
         success: false,
-        error: err.message || "Firebase Google sign-in failed",
+        error: getErrorMessage(err, "Firebase Google sign-in failed"),
       };
     }
   };
@@ -219,22 +229,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ) => {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
-      const idToken = await cred.user.getIdToken();
-      const { data, error } = await apiService.registerWithFirebase(idToken);
-      if (error) {
-        return { success: false, error };
-      }
-      if (data) {
-        localStorage.setItem("token", data.access_token);
-        setUser(data.user);
+      await updateProfile(cred.user, { displayName: name });
+      const success = await syncFirebaseSession(cred.user, true);
+      if (success) {
         return { success: true };
       }
       return { success: false, error: "Registration failed" };
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[AuthContext] Firebase registration error", err);
       return {
         success: false,
-        error: err.message || "Firebase registration failed",
+        error: getErrorMessage(err, "Firebase registration failed"),
       };
     }
   };
@@ -242,8 +247,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     // clear both firebase and backend tokens
     firebaseSignOut(auth).catch(() => {});
-    localStorage.removeItem("token");
-    setUser(null);
+    clearSession();
     router.push("/login");
   };
 

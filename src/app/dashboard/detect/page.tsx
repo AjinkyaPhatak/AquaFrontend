@@ -184,7 +184,7 @@ export default function DetectPage() {
       const { data, error: apiError } = await apiService.analyzeWater(uploadedFile, location, notes);
 
       if (apiError || !data) {
-        setError(apiError || 'Gemini forecast unavailable. Showing local fallback forecast.');
+        setError(apiError || 'Forecast unavailable. Showing local fallback forecast.');
         const localForecast = generateLocalForecast();
         setAiAnalysis(localForecast);
         setForecastParams(convertToForecastParams(localForecast));
@@ -195,7 +195,7 @@ export default function DetectPage() {
         setForecastRiskScore(data.overallSafetyScore);
       }
     } catch {
-      setError('Failed to connect to Gemini. Showing local fallback forecast.');
+      setError('Failed to connect to the local model. Showing local fallback forecast.');
       const localForecast = generateLocalForecast();
       setAiAnalysis(localForecast);
       setForecastParams(convertToForecastParams(localForecast));
@@ -361,7 +361,7 @@ export default function DetectPage() {
                 <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Gemini Frothing Forecast</h2>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Local Frothing Forecast</h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -405,7 +405,7 @@ export default function DetectPage() {
                   {isAnalyzingWithAI ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Forecasting with Gemini...
+                      Forecasting locally...
                     </>
                   ) : (
                     <>

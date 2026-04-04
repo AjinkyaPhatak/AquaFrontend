@@ -7,30 +7,15 @@ import { useAuth } from '@/context/AuthContext';
 import { 
   LayoutDashboard, 
   Droplets, 
-  Map, 
-  BarChart3, 
-  Settings, 
-  HelpCircle,
   LogOut,
   LogIn,
-  Globe,
-  Bell,
   FileText
 } from 'lucide-react';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Droplets, label: 'Frothing Forecast', href: '/dashboard/detect' },
-  { icon: Map, label: 'Water Map', href: '/dashboard/map' },
-  { icon: BarChart3, label: 'Analytics', href: '/dashboard/analytics' },
-  { icon: Globe, label: 'Global Data', href: '/dashboard/global' },
   { icon: FileText, label: 'Reports', href: '/dashboard/reports' },
-  { icon: Bell, label: 'Alerts', href: '/dashboard/alerts' },
-];
-
-const bottomItems = [
-  { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
-  { icon: HelpCircle, label: 'Help', href: '/dashboard/help' },
 ];
 
 export default function Sidebar() {
@@ -109,19 +94,7 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Bottom Menu */}
       <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-        {bottomItems.map((item) => (
-          <motion.div key={item.href} variants={itemVariants}>
-            <Link
-              href={item.href}
-              className="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="font-medium">{item.label}</span>
-            </Link>
-          </motion.div>
-        ))}
         {isAuthenticated ? (
           <motion.button
             whileHover={{ scale: 1.02 }}

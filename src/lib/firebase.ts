@@ -1,5 +1,10 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  User,
+} from "firebase/auth";
 
 // Recommended: move these values into environment variables for security
 // and flexibility; they are safe to expose in the browser but using NEXT_PUBLIC_
@@ -28,8 +33,7 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-export async function signInWithGoogle() {
+export async function signInWithGoogle(): Promise<User> {
   const result = await signInWithPopup(auth, googleProvider);
-  const token = await result.user.getIdToken();
-  return token;
+  return result.user;
 }
