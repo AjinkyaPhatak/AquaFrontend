@@ -102,48 +102,6 @@ export default function DetectPage() {
     }));
   };
 
-  const generateLocalForecast = (): WaterAnalysis => {
-    const riskScore = Math.floor(Math.random() * 35) + 55;
-    const estimatedTimeToFrothHours = riskScore > 80 ? 4 : riskScore > 65 ? 18 : 60;
-    const safetyStatus = riskScore >= 80 ? 'unsafe' : riskScore >= 55 ? 'warning' : 'safe';
-
-    return {
-      _id: 'local-preview',
-      userId: '',
-      imagePath: '',
-      overallSafetyScore: riskScore,
-      safetyStatus,
-      parameters: {
-        foamCoverage: { value: 34, status: 'warning', description: 'Early foam streaking is visible on the surface.' },
-        algaeDensity: { value: 58, status: 'warning', description: 'Bloom density looks elevated in near-shore sections.' },
-        shorelineResidue: { value: 41, status: 'warning', description: 'Residue bands suggest material is collecting along the edge.' },
-        waterDiscoloration: { value: 52, status: 'warning', description: 'Discoloration indicates active surface buildup.' },
-        stagnationIndex: { value: 63, status: 'unsafe', description: 'Low circulation could allow froth to intensify quickly.' },
-        surfaceVolatility: { value: 47, status: 'warning', description: 'Patchy surface texture suggests unstable surface conditions.' },
-      },
-      recommendations: [
-        'Review fresh satellite imagery again within the next 6-12 hours.',
-        'Inspect shoreline accumulation zones before public-facing froth becomes widespread.',
-        'Track bloom movement and wind-driven concentration around inlets and enclosed edges.',
-      ],
-      detailedAnalysis:
-        'This fallback forecast suggests the lake is trending toward frothing conditions. Surface stagnation, bloom activity, and shoreline buildup are the main drivers in the current image.',
-      waterType: 'Satellite-observed lake',
-      potentialContaminants: ['algal bloom biomass', 'shoreline organic buildup'],
-      frothStage: estimatedTimeToFrothHours <= 6 ? 'imminent' : estimatedTimeToFrothHours <= 24 ? 'forming' : 'watch',
-      estimatedTimeToFrothHours,
-      estimatedTimeToFrothLabel:
-        estimatedTimeToFrothHours <= 6 ? 'Within 6 hours' : estimatedTimeToFrothHours <= 24 ? 'Within 24 hours' : '2-3 days',
-      frothConfidence: 62,
-      estimatedFrothCoveragePercent: 38,
-      keyDrivers: ['surface stagnation', 'bloom concentration', 'shoreline accumulation'],
-      location,
-      notes,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-  };
-
   const processImage = useCallback(async (imageDataUrl: string) => {
     const img = new Image();
     img.onload = async () => {
@@ -176,6 +134,10 @@ export default function DetectPage() {
 
   const analyzeWithAI = async () => {
     if (!uploadedFile) return;
+    if (!isAuthenticated) {
+      setError('Login is required to call the protected ML forecast endpoint.');
+      return;
+    }
 
     setIsAnalyzingWithAI(true);
     setError(null);
@@ -184,22 +146,20 @@ export default function DetectPage() {
       const { data, error: apiError } = await apiService.analyzeWater(uploadedFile, location, notes);
 
       if (apiError || !data) {
-        setError(apiError || 'Forecast unavailable. Showing local fallback forecast.');
-        const localForecast = generateLocalForecast();
-        setAiAnalysis(localForecast);
-        setForecastParams(convertToForecastParams(localForecast));
-        setForecastRiskScore(localForecast.overallSafetyScore);
+        setError(apiError || 'Forecast unavailable because the ML API did not return a result.');
+        setAiAnalysis(null);
+        setForecastParams([]);
+        setForecastRiskScore(null);
       } else {
         setAiAnalysis(data);
         setForecastParams(convertToForecastParams(data));
         setForecastRiskScore(data.overallSafetyScore);
       }
     } catch {
-      setError('Failed to connect to the local model. Showing local fallback forecast.');
-      const localForecast = generateLocalForecast();
-      setAiAnalysis(localForecast);
-      setForecastParams(convertToForecastParams(localForecast));
-      setForecastRiskScore(localForecast.overallSafetyScore);
+      setError('Failed to connect to the backend or local ML model.');
+      setAiAnalysis(null);
+      setForecastParams([]);
+      setForecastRiskScore(null);
     } finally {
       setIsAnalyzingWithAI(false);
     }
@@ -417,7 +377,7 @@ export default function DetectPage() {
 
                 {!isAuthenticated && (
                   <p className="text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">
-                    <a href="/login" className="text-blue-500 hover:underline">Login</a> to store your frothing forecast history
+                    <a href="/login" className="text-blue-500 hover:underline">Login</a> to call the protected ML forecast API and store forecast history
                   </p>
                 )}
               </div>
@@ -500,6 +460,24 @@ export default function DetectPage() {
                         {driver}
                       </span>
                     ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">ML Prediction</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <p className="text-gray-500 dark:text-gray-400">Predicted risk</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{aiAnalysis.mlPredictionLabel}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 dark:text-gray-400">Model confidence</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{aiAnalysis.mlConfidence}%</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 dark:text-gray-400">Raw class</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{aiAnalysis.mlPredictedClass}</p>
                   </div>
                 </div>
               </div>

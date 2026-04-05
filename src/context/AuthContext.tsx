@@ -122,6 +122,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [applyAuthResult, clearSession],
   );
 
+  const syncFirebaseRegistration = useCallback(
+    async (fbUser: FirebaseUser) => {
+      const idToken = await fbUser.getIdToken(true);
+      const { data, error } = await apiService.registerWithFirebase(idToken);
+
+      if (data) {
+        lastSyncedIdTokenRef.current = idToken;
+        applyAuthResult(data);
+        return true;
+      }
+
+      console.warn(
+        "[AuthContext] Firebase registration token could not be exchanged",
+        error,
+      );
+      clearSession();
+      return false;
+    },
+    [applyAuthResult, clearSession],
+  );
+
   // keep listen for firebase changes so that the UI can react if the user
   // signs in or out using another window/tab or provider.
   useEffect(() => {
@@ -174,6 +195,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: "Login failed" };
     } catch (err: unknown) {
       console.error("[AuthContext] Firebase login error", err);
+
+      const firebaseError = getErrorMessage(err, "");
+      if (
+        firebaseError.includes("auth/invalid-credential") ||
+        firebaseError.includes("auth/user-not-found") ||
+        firebaseError.includes("auth/invalid-login-credentials")
+      ) {
+        console.warn(
+          "[AuthContext] Falling back to backend login for legacy account",
+        );
+        return login(email, password);
+      }
+
       return {
         success: false,
         error: getErrorMessage(err, "Firebase authentication failed"),
@@ -230,7 +264,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(cred.user, { displayName: name });
-      const success = await syncFirebaseSession(cred.user, true);
+      const success = await syncFirebaseRegistration(cred.user);
       if (success) {
         return { success: true };
       }

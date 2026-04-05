@@ -239,6 +239,10 @@ export interface WaterAnalysis {
   frothConfidence: number;
   estimatedFrothCoveragePercent: number;
   keyDrivers: string[];
+  mlPredictionLabel: "Low Risk" | "Medium Risk" | "High Risk";
+  mlPredictedClass: "low" | "medium" | "high";
+  mlConfidence: number;
+  mlProbabilities: Record<string, number>;
   location?: string;
   notes?: string;
   createdAt: string;

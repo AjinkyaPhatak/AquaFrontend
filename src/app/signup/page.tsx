@@ -219,30 +219,6 @@ export default function SignupPage() {
               </p>
             </motion.div>
 
-            <motion.div variants={itemVariants} className="flex items-start">
-              <input
-                type="checkbox"
-                className="w-4 h-4 mt-0.5 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
-                required
-              />
-              <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-                I agree to the{" "}
-                <Link
-                  href="/terms"
-                  className="text-blue-500 hover:text-blue-600"
-                >
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link
-                  href="/privacy"
-                  className="text-blue-500 hover:text-blue-600"
-                >
-                  Privacy Policy
-                </Link>
-              </span>
-            </motion.div>
-
             <motion.div variants={itemVariants}>
               <GlowingButton type="submit" fullWidth disabled={isLoading}>
                 {isLoading ? (
