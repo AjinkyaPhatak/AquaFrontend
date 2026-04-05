@@ -1,8 +1,15 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface ApiResponse<T> {
   data?: T;
   error?: string;
+}
+
+interface RequestOptions {
+  method?: string;
+  body?: BodyInit | null;
+  includeAuth?: boolean;
+  isFormData?: boolean;
 }
 
 class ApiService {
@@ -10,292 +17,187 @@ class ApiService {
     if (typeof window !== "undefined") {
       return localStorage.getItem("token");
     }
+
     return null;
   }
 
-  private getHeaders(includeAuth = true): HeadersInit {
-    const headers: HeadersInit = {
-      "Content-Type": "application/json",
-    };
+  private getApiUrl(): string {
+    if (!API_URL) {
+      console.error("API URL NOT DEFINED");
+      throw new Error("API URL NOT DEFINED");
+    }
+
+    return API_URL.replace(/\/+$/, "");
+  }
+
+  private buildUrl(path: string): string {
+    return `${this.getApiUrl()}/${path.replace(/^\/+/, "")}`;
+  }
+
+  private getHeaders({
+    includeAuth = true,
+    isFormData = false,
+  }: Pick<RequestOptions, "includeAuth" | "isFormData"> = {}): HeadersInit {
+    const token = includeAuth ? this.getToken() : null;
+    const headers: Record<string, string> = {};
+
+    if (!isFormData) {
+      headers["Content-Type"] = "application/json";
+    }
 
     if (includeAuth) {
-      const token = this.getToken();
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
+      headers["Authorization"] = token ? `Bearer ${token}` : "";
     }
 
     return headers;
   }
 
   private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
+    const responseText = await response.text();
+    const responseData = responseText
+      ? (() => {
+          try {
+            return JSON.parse(responseText) as T | { message?: string; error?: string };
+          } catch {
+            return responseText;
+          }
+        })()
+      : null;
+
     if (!response.ok) {
-      const error = await response
-        .json()
-        .catch(() => ({ message: "An error occurred" }));
-      return { error: error.message || "An error occurred" };
+      const errorPayload =
+        typeof responseData === "object" && responseData !== null
+          ? (responseData as { message?: string; error?: string })
+          : null;
+
+      const errorMessage =
+        errorPayload?.error || errorPayload?.message || "An error occurred";
+
+      return { error: errorMessage };
     }
-    const data = await response.json();
-    return { data };
+
+    return { data: responseData as T };
   }
 
-  // Auth endpoints
-  async login(email: string, password: string) {
-    console.log("[API] POST /auth/login - Attempting login for:", email);
+  private async request<T>(
+    path: string,
+    {
+      method = "GET",
+      body = null,
+      includeAuth = true,
+      isFormData = false,
+    }: RequestOptions = {},
+  ): Promise<ApiResponse<T>> {
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: "POST",
-        headers: this.getHeaders(false),
-        body: JSON.stringify({ email, password }),
+      const response = await fetch(this.buildUrl(path), {
+        method,
+        headers: this.getHeaders({ includeAuth, isFormData }),
+        body,
       });
-      const result = await this.handleResponse<{
-        user: User;
-        access_token: string;
-      }>(response);
-      console.log(
-        "[API] POST /auth/login - Response:",
-        result.data ? "Success" : result.error,
-      );
-      return result;
+
+      return await this.handleResponse<T>(response);
     } catch (error) {
-      console.error("[API] POST /auth/login - Error:", error);
-      return {
-        error:
-          "Unable to connect to server. Please check if backend is running.",
-      };
+      console.error("API ERROR:", error);
+      return { error: "Unable to connect to server" };
     }
+  }
+
+  async login(email: string, password: string) {
+    return this.request<{ user: User; access_token: string }>("auth/login", {
+      method: "POST",
+      includeAuth: false,
+      body: JSON.stringify({ email, password }),
+    });
   }
 
   async register(name: string, email: string, password: string) {
-    console.log(
-      "[API] POST /auth/register - Attempting registration for:",
-      email,
-    );
-    try {
-      const response = await fetch(`${API_URL}/auth/register`, {
-        method: "POST",
-        headers: this.getHeaders(false),
-        body: JSON.stringify({ name, email, password }),
-      });
-      const result = await this.handleResponse<{
-        user: User;
-        access_token: string;
-      }>(response);
-      console.log(
-        "[API] POST /auth/register - Response:",
-        result.data ? "Success" : result.error,
-      );
-      return result;
-    } catch (error) {
-      console.error("[API] POST /auth/register - Error:", error);
-      return {
-        error:
-          "Unable to connect to server. Please check if backend is running.",
-      };
-    }
+    return this.request<{ user: User; access_token: string }>("auth/register", {
+      method: "POST",
+      includeAuth: false,
+      body: JSON.stringify({ name, email, password }),
+    });
   }
 
-  // These helpers expect a Firebase ID token from the client. The backend should
-  // verify the token with Firebase and then create/lookup the corresponding user
-  // in its own database, returning the usual {user, access_token} pair.
   async loginWithFirebase(idToken: string) {
-    console.log("[API] POST /auth/firebase/login - Sending Firebase ID token");
-    try {
-      const response = await fetch(`${API_URL}/auth/firebase/login`, {
+    return this.request<{ user: User; access_token: string }>(
+      "auth/firebase/login",
+      {
         method: "POST",
-        headers: this.getHeaders(false),
+        includeAuth: false,
         body: JSON.stringify({ idToken }),
-      });
-      const result = await this.handleResponse<{
-        user: User;
-        access_token: string;
-      }>(response);
-      console.log(
-        "[API] POST /auth/firebase/login - Response:",
-        result.data ? "Success" : result.error,
-      );
-      return result;
-    } catch (error) {
-      console.error("[API] POST /auth/firebase/login - Error:", error);
-      return {
-        error:
-          "Unable to connect to server. Please check if backend is running.",
-      };
-    }
+      },
+    );
   }
 
   async registerWithFirebase(idToken: string) {
-    console.log(
-      "[API] POST /auth/firebase/register - Sending Firebase ID token",
-    );
-    try {
-      const response = await fetch(`${API_URL}/auth/firebase/register`, {
+    return this.request<{ user: User; access_token: string }>(
+      "auth/firebase/register",
+      {
         method: "POST",
-        headers: this.getHeaders(false),
+        includeAuth: false,
         body: JSON.stringify({ idToken }),
-      });
-      const result = await this.handleResponse<{
-        user: User;
-        access_token: string;
-      }>(response);
-      console.log(
-        "[API] POST /auth/firebase/register - Response:",
-        result.data ? "Success" : result.error,
-      );
-      return result;
-    } catch (error) {
-      console.error("[API] POST /auth/firebase/register - Error:", error);
-      return {
-        error:
-          "Unable to connect to server. Please check if backend is running.",
-      };
-    }
+      },
+    );
   }
 
   async getMe() {
-    try {
-      const response = await fetch(`${API_URL}/auth/me`, {
-        headers: this.getHeaders(),
-      });
-      return this.handleResponse<User>(response);
-    } catch (error) {
-      return { error: "Unable to connect to server" };
-    }
+    return this.request<User>("auth/me");
   }
 
-  // User endpoints
   async getProfile() {
-    try {
-      const response = await fetch(`${API_URL}/users/profile`, {
-        headers: this.getHeaders(),
-      });
-      return this.handleResponse<User>(response);
-    } catch (error) {
-      return { error: "Unable to connect to server" };
-    }
+    return this.request<User>("users/profile");
   }
 
   async updateProfile(data: { name?: string; avatar?: string }) {
-    console.log("[API] PUT /users/profile - Updating profile:", data);
-    try {
-      const response = await fetch(`${API_URL}/users/profile`, {
-        method: "PUT",
-        headers: this.getHeaders(),
-        body: JSON.stringify(data),
-      });
-      const result = await this.handleResponse<User>(response);
-      console.log(
-        "[API] PUT /users/profile - Response:",
-        result.data ? "Success" : result.error,
-      );
-      return result;
-    } catch (error) {
-      console.error("[API] PUT /users/profile - Error:", error);
-      return { error: "Unable to connect to server" };
-    }
+    return this.request<User>("users/profile", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
   }
 
-  // Water Analysis endpoints
   async analyzeWater(file: File, location?: string, notes?: string) {
-    console.log(
-      "[API] POST /water-analysis/analyze - Analyzing water image:",
-      file.name,
-      "Location:",
-      location,
-    );
-    try {
-      const formData = new FormData();
-      formData.append("image", file);
-      if (location) formData.append("location", location);
-      if (notes) formData.append("notes", notes);
+    const formData = new FormData();
+    formData.append("image", file);
 
-      const token = this.getToken();
-      const response = await fetch(`${API_URL}/water-analysis/analyze`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-      const result = await this.handleResponse<WaterAnalysis>(response);
-      console.log(
-        "[API] POST /water-analysis/analyze - Response:",
-        result.data
-          ? `Success - Safety Score: ${result.data.overallSafetyScore}`
-          : result.error,
-      );
-      return result;
-    } catch (error) {
-      console.error("[API] POST /water-analysis/analyze - Error:", error);
-      return {
-        error:
-          "Unable to connect to server. Please check if backend is running.",
-      };
+    if (location) {
+      formData.append("location", location);
     }
+
+    if (notes) {
+      formData.append("notes", notes);
+    }
+
+    return this.request<WaterAnalysis>("water-analysis/analyze", {
+      method: "POST",
+      body: formData,
+      isFormData: true,
+    });
   }
 
   async getAnalysisHistory(page = 1, limit = 10) {
-    try {
-      const response = await fetch(
-        `${API_URL}/water-analysis/history?page=${page}&limit=${limit}`,
-        {
-          headers: this.getHeaders(),
-        },
-      );
-      return this.handleResponse<{
-        analyses: WaterAnalysis[];
-        total: number;
-        pages: number;
-        currentPage: number;
-      }>(response);
-    } catch (error) {
-      return { error: "Unable to connect to server" };
-    }
+    return this.request<{
+      analyses: WaterAnalysis[];
+      total: number;
+      pages: number;
+      currentPage: number;
+    }>(`water-analysis/history?page=${page}&limit=${limit}`);
   }
 
   async getAnalysisStats() {
-    try {
-      const response = await fetch(`${API_URL}/water-analysis/stats`, {
-        headers: this.getHeaders(),
-      });
-      return this.handleResponse<WaterAnalysisStats>(response);
-    } catch (error) {
-      return { error: "Unable to connect to server" };
-    }
+    return this.request<WaterAnalysisStats>("water-analysis/stats");
   }
 
   async getAnalysisById(id: string) {
-    try {
-      const response = await fetch(`${API_URL}/water-analysis/${id}`, {
-        headers: this.getHeaders(),
-      });
-      return this.handleResponse<WaterAnalysis>(response);
-    } catch (error) {
-      return { error: "Unable to connect to server" };
-    }
+    return this.request<WaterAnalysis>(`water-analysis/${id}`);
   }
 
   async deleteAnalysis(id: string) {
-    console.log("[API] DELETE /water-analysis/:id - Deleting analysis:", id);
-    try {
-      const response = await fetch(`${API_URL}/water-analysis/${id}`, {
-        method: "DELETE",
-        headers: this.getHeaders(),
-      });
-      const result = await this.handleResponse<{ message: string }>(response);
-      console.log(
-        "[API] DELETE /water-analysis/:id - Response:",
-        result.data ? "Success" : result.error,
-      );
-      return result;
-    } catch (error) {
-      console.error("[API] DELETE /water-analysis/:id - Error:", error);
-      return { error: "Unable to connect to server" };
-    }
+    return this.request<{ message: string }>(`water-analysis/${id}`, {
+      method: "DELETE",
+    });
   }
 }
 
-// Types
 export interface User {
   _id: string;
   id?: string;
