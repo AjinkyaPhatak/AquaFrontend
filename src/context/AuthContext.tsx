@@ -61,6 +61,18 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+function getFirebaseFriendlyError(error: unknown, fallback: string) {
+  const message = getErrorMessage(error, fallback);
+
+  if (message.includes("auth/unauthorized-domain")) {
+    const origin =
+      typeof window !== "undefined" ? window.location.origin : "this site";
+    return `Google sign-in is not authorized for ${origin}. Add this domain in Firebase Console -> Authentication -> Settings -> Authorized domains, then try again.`;
+  }
+
+  return message;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -105,19 +117,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const idToken = await fbUser.getIdToken(force);
 
       if (!force && lastSyncedIdTokenRef.current === idToken) {
-        return true;
+        return { success: true as const };
       }
 
       const { data, error } = await apiService.loginWithFirebase(idToken);
       if (data) {
         lastSyncedIdTokenRef.current = idToken;
         applyAuthResult(data);
-        return true;
+        return { success: true as const };
       }
 
       console.warn("[AuthContext] Firebase token could not be exchanged", error);
       clearSession();
-      return false;
+      return {
+        success: false as const,
+        error: error || "Firebase session could not be synced",
+      };
     },
     [applyAuthResult, clearSession],
   );
@@ -130,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data) {
         lastSyncedIdTokenRef.current = idToken;
         applyAuthResult(data);
-        return true;
+        return { success: true as const };
       }
 
       console.warn(
@@ -138,7 +153,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error,
       );
       clearSession();
-      return false;
+      return {
+        success: false as const,
+        error: error || "Firebase registration could not be synced",
+      };
     },
     [applyAuthResult, clearSession],
   );
@@ -188,11 +206,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginWithFirebaseEmail = async (email: string, password: string) => {
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password);
-      const success = await syncFirebaseSession(cred.user, true);
-      if (success) {
+      const result = await syncFirebaseSession(cred.user, true);
+      if (result.success) {
         return { success: true };
       }
-      return { success: false, error: "Login failed" };
+      return {
+        success: false,
+        error: result.error || "Login failed",
+      };
     } catch (err: unknown) {
       console.error("[AuthContext] Firebase login error", err);
 
@@ -210,7 +231,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return {
         success: false,
-        error: getErrorMessage(err, "Firebase authentication failed"),
+        error: getFirebaseFriendlyError(err, "Firebase authentication failed"),
       };
     }
   };
@@ -219,16 +240,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginWithGoogle = async () => {
     try {
       const firebaseUser = await signInWithGoogle();
-      const success = await syncFirebaseSession(firebaseUser, true);
-      if (success) {
+      const result = await syncFirebaseSession(firebaseUser, true);
+      if (result.success) {
         return { success: true };
       }
-      return { success: false, error: "Login failed" };
+      return {
+        success: false,
+        error: result.error || "Login failed",
+      };
     } catch (err: unknown) {
       console.error("[AuthContext] Google sign-in failed", err);
       return {
         success: false,
-        error: getErrorMessage(err, "Firebase Google sign-in failed"),
+        error: getFirebaseFriendlyError(err, "Firebase Google sign-in failed"),
       };
     }
   };
@@ -264,16 +288,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(cred.user, { displayName: name });
-      const success = await syncFirebaseRegistration(cred.user);
-      if (success) {
+      const result = await syncFirebaseRegistration(cred.user);
+      if (result.success) {
         return { success: true };
       }
-      return { success: false, error: "Registration failed" };
+      return {
+        success: false,
+        error: result.error || "Registration failed",
+      };
     } catch (err: unknown) {
       console.error("[AuthContext] Firebase registration error", err);
       return {
         success: false,
-        error: getErrorMessage(err, "Firebase registration failed"),
+        error: getFirebaseFriendlyError(err, "Firebase registration failed"),
       };
     }
   };
